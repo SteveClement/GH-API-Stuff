@@ -11,6 +11,8 @@ import urllib.request
 
 from time import time
 
+import hashlib
+
 # create our little application :)
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -25,20 +27,43 @@ app.config.update(dict(
 ))
 app.config.from_envvar('EMOJI_SETTINGS', silent=True)
 
+def checkEmoji(name, dataHash):
+    db =  get_db()
+    query = 'SELECT hash FROM entries WHERE name = {} ORDER BY lastCrawl'.format(name)
+    print(query)
+    hashes = db.execute('SELECT hash FROM entries WHERE name = ? ORDER BY lastCrawl', [ name ])
+    hasHash = hashes.fetchone()
+    print(hasHash)
+    if hasHash:
+        print("{} has a hash: {}".format(name, hasHash[0]))
+        if dataHash == hasHash:
+            return False
+        else:
+            return True
+
 def update_db():
     with app.app_context():
         response = urllib.request.urlopen(app.config['APIURL'])
         data = response.read()
+        dataHash = hashlib.sha256(data).hexdigest()
         text = data.decode('utf-8')
         json_acceptable_string = text.replace("'", "\"")
         emoList = json.loads(json_acceptable_string)
         now = time()
         db = get_db()
+        counter = 0
+        total = len(dict.keys(emoList))
         for name in dict.keys(emoList):
             imgURL = emoList[name]
-            db.execute('INSERT INTO entries (name, lastCrawl, imgURL) VALUES (?, ?, ?)',
-                         [name, now, imgURL])
-            db.commit()
+            counter += 1
+            print("Processing: {} - {} of {}".format(name, counter, total))
+            response = urllib.request.urlopen(imgURL)
+            data = response.read()
+            dataHash = hashlib.sha256(data).hexdigest()
+            if checkEmoji(name, dataHash):
+                db.execute('INSERT INTO entries (name, lastCrawl, imgURL, hash) VALUES (?, ?, ?, ?)',
+                             [name, now, imgURL, dataHash])
+                db.commit()
 
 def connect_db():
     """Connects to the specific database."""
@@ -77,9 +102,8 @@ def close_db(error):
 @app.route('/')
 def show_entries():
     db = get_db()
-    cur = db.execute('SELECT name, imgURL FROM entries ORDER BY id DESC')
+    cur = db.execute('SELECT name, imgURL, hash FROM entries ORDER BY id DESC')
     entries = cur.fetchall()
-    print(entries)
     return render_template('show_entries.html', entries=entries)
 
 @app.route('/add', methods=['POST'])

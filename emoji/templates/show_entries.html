@@ -13,7 +13,7 @@
   {% endif %}
   <ul class="entries">
   {% for entry in entries %}
-    <li><img src="{{ entry.imgURL }}"><h2>{{ entry.name }}</h2>{{ entry.imgURL|safe }}
+    <li><img src="{{ entry.imgURL }}"><h2>{{ entry.name }}</h2>{{ entry.imgURL|safe }} {{ entry.hash }}
   {% else %}
     <li><em>Unbelievable.  No entries here so far</em>
   {% endfor %}
