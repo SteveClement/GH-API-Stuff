@@ -36,10 +36,13 @@ def checkEmoji(name, dataHash):
     print(hasHash)
     if hasHash:
         print("{} has a hash: {}".format(name, hasHash[0]))
-        if dataHash == hasHash:
+        if dataHash == hasHash[0]:
+            print("Already in db, skipping: {}".format(name))
             return False
         else:
             return True
+    else:
+        return False
 
 def update_db():
     with app.app_context():
@@ -60,7 +63,8 @@ def update_db():
             response = urllib.request.urlopen(imgURL)
             data = response.read()
             dataHash = hashlib.sha256(data).hexdigest()
-            if checkEmoji(name, dataHash):
+            if not checkEmoji(name, dataHash):
+                print("Adding {} to db".format(name))
                 db.execute('INSERT INTO entries (name, lastCrawl, imgURL, hash) VALUES (?, ?, ?, ?)',
                              [name, now, imgURL, dataHash])
                 db.commit()
@@ -134,6 +138,6 @@ def logout():
     return redirect(url_for('show_entries'))
 
 if __name__ == '__main__':
-    init_db()
+    ##init_db()
     update_db()
     app.run(debug=True)
