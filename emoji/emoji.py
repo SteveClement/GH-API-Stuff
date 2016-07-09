@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
 
 # all the imports
 import os
@@ -10,6 +11,8 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
 import urllib.request
 
 from time import time
+
+import requests
 
 import hashlib
 
@@ -23,7 +26,7 @@ app.config.update(dict(
     SECRET_KEY='d3v3l0pm3nt k3y',
     USERNAME='admin',
     PASSWORD='a55w0rd',
-		APIURL='https://api.github.com/emojis'
+    APIURL='https://api.github.com/emojis'
 ))
 app.config.from_envvar('EMOJI_SETTINGS', silent=True)
 
@@ -46,7 +49,12 @@ def checkEmoji(name, dataHash):
 
 def update_db():
     with app.app_context():
-        response = urllib.request.urlopen(app.config['APIURL'])
+        try:
+            print("trying")
+            response = requests.get(app.config['APIURL'])
+        except requests.exceptions.RequestException as e:
+            print("I am error, Probably no netz: {}".format(e))
+            return False
         data = response.read()
         dataHash = hashlib.sha256(data).hexdigest()
         text = data.decode('utf-8')
@@ -68,6 +76,7 @@ def update_db():
                 db.execute('INSERT INTO entries (name, lastCrawl, imgURL, hash) VALUES (?, ?, ?, ?)',
                              [name, now, imgURL, dataHash])
                 db.commit()
+        return True
 
 def connect_db():
     """Connects to the specific database."""
@@ -75,13 +84,28 @@ def connect_db():
     rv.row_factory = sqlite3.Row
     return rv
 
+def check_db():
+    with app.app_context():
+        db = get_db()
+        try:
+            cur = db.execute('SELECT * FROM entries LIMIT 1')
+            if cur.fetchone():
+                print("Got an entry, thus not empty")
+                return True
+        except:
+            print("Probably empty, initdb")
+            return False
+
 def init_db():
     """Initializes the database."""
     with app.app_context():
-        db = get_db()
-        with app.open_resource('schema.sql', mode='r') as f:
-            db.cursor().executescript(f.read())
-        db.commit()
+        if not check_db():
+            db = get_db()
+            with app.open_resource('schema.sql', mode='r') as f:
+                db.cursor().executescript(f.read())
+            db.commit()
+        else:
+            print("Skipping initdb")
 
 @app.cli.command('initdb')
 def initdb_command():
@@ -138,6 +162,10 @@ def logout():
     return redirect(url_for('show_entries'))
 
 if __name__ == '__main__':
-    ##init_db()
-    update_db()
-    app.run(debug=True)
+    init_db()
+    if update_db():
+        print("Update suceeded, launching service")
+        app.run(debug=True)
+    else:
+        print("Update failed, launching service")
+        app.run(debug=True)
