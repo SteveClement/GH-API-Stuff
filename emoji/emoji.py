@@ -3,12 +3,11 @@
 
 # all the imports
 import os
+import json
 import sqlite3
 from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 import urllib.request
-
-import json
 
 from time import time
 
@@ -27,13 +26,19 @@ app.config.update(dict(
 app.config.from_envvar('EMOJI_SETTINGS', silent=True)
 
 def update_db():
-    response = urllib.request.urlopen(app.config['APIURL'])
-    data = response.read
-    text = data.decode('utf-8')
-    json_acceptable_string = text.replace("'", "\"")
-    emoList = json.loads(json_acceptable_string)
-    for name in dict.keys(emoList):
-        print("<a href={}>{}</a>".format(emoList[name], name))
+    with app.app_context():
+        response = urllib.request.urlopen(app.config['APIURL'])
+        data = response.read()
+        text = data.decode('utf-8')
+        json_acceptable_string = text.replace("'", "\"")
+        emoList = json.loads(json_acceptable_string)
+        now = time()
+        db = get_db()
+        for name in dict.keys(emoList):
+            imgURL = emoList[name]
+            db.execute('INSERT INTO entries (name, lastCrawl, imgURL) VALUES (?, ?, ?)',
+                         [name, now, imgURL])
+            db.commit()
 
 def connect_db():
     """Connects to the specific database."""
@@ -74,16 +79,13 @@ def show_entries():
     db = get_db()
     cur = db.execute('SELECT name, imgURL FROM entries ORDER BY id DESC')
     entries = cur.fetchall()
+    print(entries)
     return render_template('show_entries.html', entries=entries)
 
 @app.route('/add', methods=['POST'])
 def add_entry():
     if not session.get('logged_in'):
         abort(401)
-    db = get_db()
-    db.execute('insert into entries (title, text) values (?, ?)',
-                 [request.form['title'], request.form['text']])
-    db.commit()
     flash('New entry was successfully posted')
     return redirect(url_for('show_entries'))
 
