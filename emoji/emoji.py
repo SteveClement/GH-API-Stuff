@@ -10,7 +10,7 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 import urllib.request
 
-from time import time
+from time import time, sleep
 
 import requests
 
@@ -32,11 +32,12 @@ app.config.from_envvar('EMOJI_SETTINGS', silent=True)
 
 def checkEmoji(name, dataHash):
     db =  get_db()
-    query = 'SELECT hash FROM entries WHERE name = {} ORDER BY lastCrawl'.format(name)
+    query = 'SELECT hash FROM entries WHERE name={} ORDER BY lastCrawl'.format(name)
     print(query)
-    hashes = db.execute('SELECT hash FROM entries WHERE name = ? ORDER BY lastCrawl', [ name ])
+    hashes = db.execute('SELECT hash FROM entries WHERE name=\"{}\" ORDER BY lastCrawl'.format(name))
     hasHash = hashes.fetchone()
     print(hasHash)
+    sleep(9)
     if hasHash:
         print("{} has a hash: {}".format(name, hasHash[0]))
         if dataHash == hasHash[0]:
@@ -51,7 +52,8 @@ def update_db():
     with app.app_context():
         try:
             print("trying")
-            response = requests.get(app.config['APIURL'])
+            r = requests.get(app.config['APIURL'])
+            response = urllib.request.urlopen(app.config['APIURL'])
         except requests.exceptions.RequestException as e:
             print("I am error, Probably no netz: {}".format(e))
             return False
