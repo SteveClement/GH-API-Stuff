@@ -6,8 +6,8 @@ from flask_github import GitHub
 # create our little application :)
 app = Flask(__name__)
 app.config.from_object(__name__)
-app.config['GITHUB_CLIENT_ID'] = 'XXX'
-app.config['GITHUB_CLIENT_SECRET'] = 'YYY'
+app.config['GITHUB_CLIENT_ID'] = '60bd3707a2d6e88cb7b4'
+app.config['GITHUB_CLIENT_SECRET'] = 'c9f263852a9d926d67504b39b739643ab5a174ce'
 
 github = GitHub(app)
 

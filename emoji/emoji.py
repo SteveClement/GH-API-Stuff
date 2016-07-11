@@ -26,12 +26,12 @@ except ImportError:
 
 def checkEmoji(name, dataHash):
     db =  get_db()
-    query = 'SELECT hash FROM entries WHERE name={} ORDER BY lastCrawl'.format(name)
+    query = 'SELECT hash FROM entries WHERE name="{}" ORDER BY lastCrawl'.format(name)
     print(query)
-    hashes = db.execute('SELECT hash FROM entries WHERE name=\"{}\" ORDER BY lastCrawl'.format(name))
+    hashes = db.execute(query)
+    db.commit()
     hasHash = hashes.fetchone()
     print(hasHash)
-    sleep(9)
     if hasHash:
         print("{} has a hash: {}".format(name, hasHash[0]))
         if dataHash == hasHash[0]:
