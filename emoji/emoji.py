@@ -11,6 +11,8 @@ from flask import Flask, request, session, g, redirect, url_for, abort, \
      render_template, flash
 import urllib.request
 
+import flask_github
+
 from time import time, sleep
 
 import requests
@@ -20,6 +22,10 @@ import hashlib
 # create our little application :)
 app = Flask(__name__)
 app.config.from_object(__name__)
+app.config['GITHUB_CLIENT_ID'] = 'XXX'
+app.config['GITHUB_CLIENT_SECRET'] = 'YYY'
+
+github = GitHub(app)
 
 # Load default config and override config from an environment variable
 app.config.update(dict(

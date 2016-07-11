@@ -12,3 +12,11 @@ cd GH-API-Stuff/emoji
 pip3 install -r requirements
 python3 emoji.py
 ```
+
+#### FreeBSD
+
+On FreeBSD you need to install the py35-sqlite3 package
+
+```
+# portinstall py35-sqlite3
+```
